@@ -748,11 +748,9 @@
     if (!dom.toast || !message) return;
     window.clearTimeout(toastTimer);
     dom.toast.textContent = message;
-    dom.toast.classList.remove("hidden");
     requestAnimationFrame(() => dom.toast.classList.add("is-visible"));
     toastTimer = window.setTimeout(() => {
       dom.toast.classList.remove("is-visible");
-      window.setTimeout(() => dom.toast.classList.add("hidden"), 180);
     }, 1600);
   }
 })();

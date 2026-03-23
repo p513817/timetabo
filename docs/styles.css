@@ -441,6 +441,7 @@ select {
   text-align: center;
   font-size: 0.88rem;
   line-height: 1.35;
+  visibility: hidden;
   opacity: 0;
   transform: translate(-50%, -50%) scale(0.96);
   pointer-events: none;
@@ -448,6 +449,7 @@ select {
 }
 
 .toast.is-visible {
+  visibility: visible;
   opacity: 1;
   transform: translate(-50%, -50%) scale(1);
 }
@@ -580,18 +582,27 @@ select {
 
 .tool-button-icon-only {
   min-width: 0;
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
   background: var(--surface-soft);
+  color: var(--text);
 }
 
 .tool-svg {
+  display: block;
   width: 17px;
   height: 17px;
+  overflow: visible;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.tool-button-danger.tool-button-icon-only {
+  color: var(--danger);
 }
 
 .modal-header-tools .icon-glyph {
