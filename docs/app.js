@@ -17,6 +17,8 @@
   let exportDivider = getDefaultDivider("grouped");
   let exportTab = "text";
   let theme = loadTheme();
+  let dragSourceDate = "";
+  let dragTargetDate = "";
 
   document.addEventListener("DOMContentLoaded", init);
 
@@ -224,9 +226,11 @@
       const button = document.createElement("button");
       button.type = "button";
       button.className = "day-cell";
+      button.dataset.date = key;
       button.setAttribute("aria-label", `${key} ${schedule.slots.length} slots`);
       if (selectedDate === key) button.classList.add("is-active");
       if (schedule.enabled && schedule.slots.length > 0) button.classList.add("has-slots");
+      if (schedule.enabled && schedule.slots.length > 0) button.draggable = true;
       button.innerHTML =
         `<span class="day-number">${day}</span>` +
         `<div class="day-slots">${schedule.slots
@@ -234,8 +238,105 @@
           .map((slot) => `${slot.start}`)
           .join("<br>")}</div>`;
       button.addEventListener("click", () => openModal(key));
+      button.addEventListener("dragstart", (event) => handleCalendarDragStart(event, key));
+      button.addEventListener("dragenter", () => handleCalendarDragEnter(key));
+      button.addEventListener("dragover", (event) => handleCalendarDragOver(event, key));
+      button.addEventListener("drop", (event) => handleCalendarDrop(event, key));
+      button.addEventListener("dragend", clearCalendarDrag);
       dom.calendar.appendChild(button);
     }
+
+    updateCalendarDragState();
+  }
+
+  function handleCalendarDragStart(event, dateKey) {
+    const schedule = getSchedule(dateKey);
+    if (!schedule.enabled || !schedule.slots.length) {
+      event.preventDefault();
+      return;
+    }
+    dragSourceDate = dateKey;
+    dragTargetDate = dateKey;
+    copiedSlots = cloneSlotsForPaste(schedule.slots);
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = "copy";
+      event.dataTransfer.setData("text/plain", dateKey);
+    }
+    setMessage(`Dragging slots from ${dateKey}. Drop on another day to paste across the range.`);
+    updateCalendarDragState();
+  }
+
+  function handleCalendarDragEnter(dateKey) {
+    if (!dragSourceDate || isSameDate(dragSourceDate, dateKey)) return;
+    dragTargetDate = dateKey;
+    updateCalendarDragState();
+  }
+
+  function handleCalendarDragOver(event, dateKey) {
+    if (!dragSourceDate) return;
+    event.preventDefault();
+    if (!isSameDate(dragTargetDate, dateKey)) {
+      dragTargetDate = dateKey;
+      updateCalendarDragState();
+    }
+  }
+
+  function handleCalendarDrop(event, dateKey) {
+    if (!dragSourceDate || !copiedSlots.length) return;
+    event.preventDefault();
+    applyPasteTarget(dragSourceDate, dateKey);
+    clearCalendarDrag();
+  }
+
+  function clearCalendarDrag() {
+    if (!dragSourceDate && !dragTargetDate) return;
+    dragSourceDate = "";
+    dragTargetDate = "";
+    updateCalendarDragState();
+  }
+
+  function applyPasteTarget(sourceDate, targetDate) {
+    if (isSameDate(sourceDate, targetDate)) {
+      setMessage("Drop on another day to paste slots.");
+      return;
+    }
+    state.schedules[targetDate] = {
+      date: targetDate,
+      enabled: true,
+      note: "",
+      slots: cloneSlotsForPaste(copiedSlots, targetDate),
+    };
+    persist();
+    setMessage(`Pasted ${sourceDate} slots to ${targetDate}.`);
+    renderAll();
+  }
+
+  function cloneSlotsForPaste(slots, dateKey = "") {
+    return slots.map((slot) => ({
+      start: slot.start,
+      end: slot.end,
+      label: slot.label,
+      status: slot.status,
+      id: createSlotId(dateKey || `copy-${Date.now()}`),
+    }));
+  }
+
+  function isDateInDragRange(dateKey) {
+    return false;
+  }
+
+  function updateCalendarDragState() {
+    if (!dom.calendar) return;
+    dom.calendar.querySelectorAll(".day-cell[data-date]").forEach((button) => {
+      const dateKey = button.dataset.date || "";
+      button.classList.toggle("is-drag-source", dateKey === dragSourceDate);
+      button.classList.toggle("is-drag-target", Boolean(dragTargetDate) && dateKey === dragTargetDate && !isSameDate(dragSourceDate, dragTargetDate));
+      button.classList.toggle("is-drag-range", isDateInDragRange(dateKey));
+    });
+  }
+
+  function isSameDate(left, right) {
+    return left === right;
   }
 
   function openModal(dateKey) {
@@ -325,19 +426,14 @@
   function copyDaySlots() {
     if (!modalDate) return;
     const schedule = getSchedule(modalDate);
-    copiedSlots = schedule.slots.map((slot) => ({
-      start: slot.start,
-      end: slot.end,
-      label: slot.label,
-      status: slot.status,
-    }));
+    copiedSlots = cloneSlotsForPaste(schedule.slots);
     setModalMessage(copiedSlots.length ? "Day copied." : "This day has no slots to copy.");
   }
 
   function pasteDaySlots() {
     if (!modalDate) return;
     if (!copiedSlots.length) return setModalMessage("Nothing copied yet.");
-    const nextSlots = copiedSlots.map((slot) => ({ ...slot, id: createSlotId(modalDate) })).sort(compareSlots);
+    const nextSlots = cloneSlotsForPaste(copiedSlots, modalDate).sort(compareSlots);
     state.schedules[modalDate] = { date: modalDate, enabled: true, note: "", slots: nextSlots };
     persist();
     setModalMessage("Slots pasted.");
