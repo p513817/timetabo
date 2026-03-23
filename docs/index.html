@@ -55,24 +55,33 @@
           <div>
             <h2 id="modalTitle">Day Slots</h2>
             <p id="modalDateLabel" class="muted">Click one time to mark it available.</p>
-            <div class="modal-inline-tools" aria-label="Day actions">
-              <button id="modalCopyDay" class="tool-button tool-button-inline" type="button" aria-label="Copy day">
-                <span class="tool-icon">C</span>
-                <span class="tool-label">Copy</span>
-              </button>
-              <button id="modalPasteDay" class="tool-button tool-button-inline" type="button" aria-label="Paste day">
-                <span class="tool-icon">P</span>
-                <span class="tool-label">Paste</span>
-              </button>
-              <button id="modalClearDay" class="tool-button tool-button-inline tool-button-danger" type="button" aria-label="Clear day">
-                <span class="tool-icon">X</span>
-                <span class="tool-label">Clear</span>
-              </button>
-            </div>
           </div>
-          <button id="closeModal" class="icon-button" type="button" aria-label="Close popup">
-            <span class="icon-glyph">+</span>
-          </button>
+          <div class="modal-header-tools" aria-label="Day actions">
+            <button id="modalCopyDay" class="tool-button tool-button-inline tool-button-icon-only" type="button" aria-label="Copy day">
+              <svg class="tool-svg" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="9" y="9" width="10" height="10" rx="2"></rect>
+                <path d="M15 9V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path>
+              </svg>
+            </button>
+            <button id="modalPasteDay" class="tool-button tool-button-inline tool-button-icon-only" type="button" aria-label="Paste day">
+              <svg class="tool-svg" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 5.5h8l2 2V18a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7.5l2-2Z"></path>
+                <path d="M9 5V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"></path>
+                <path d="M9 12h6M9 15h6"></path>
+              </svg>
+            </button>
+            <button id="modalClearDay" class="tool-button tool-button-inline tool-button-icon-only tool-button-danger" type="button" aria-label="Clear day">
+              <svg class="tool-svg" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 7h16"></path>
+                <path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+                <path d="M7 7l1 12a1 1 0 0 0 1 .9h6a1 1 0 0 0 1-.9l1-12"></path>
+                <path d="M10 11v5M14 11v5"></path>
+              </svg>
+            </button>
+            <button id="closeModal" class="icon-button" type="button" aria-label="Close popup">
+              <span class="icon-glyph">+</span>
+            </button>
+          </div>
         </div>
         <div class="modal-body">
           <p id="modalMessage" class="message" aria-live="polite"></p>
@@ -176,6 +185,8 @@
         </div>
       </section>
     </div>
+
+    <div id="toast" class="toast hidden" aria-live="polite" aria-atomic="true"></div>
 
     <script src="./app.js"></script>
   </body>

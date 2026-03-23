@@ -19,6 +19,7 @@
   let theme = loadTheme();
   let dragSourceDate = "";
   let dragTargetDate = "";
+  let toastTimer = 0;
 
   document.addEventListener("DOMContentLoaded", init);
 
@@ -56,6 +57,7 @@
     dom.exportFormatSelect = document.getElementById("exportFormatSelect");
     dom.dateFormatSelect = document.getElementById("dateFormatSelect");
     dom.dividerInput = document.getElementById("dividerInput");
+    dom.toast = document.getElementById("toast");
   }
 
   function wireEvents() {
@@ -262,7 +264,7 @@
       event.dataTransfer.effectAllowed = "copy";
       event.dataTransfer.setData("text/plain", dateKey);
     }
-    setMessage(`Dragging slots from ${dateKey}. Drop on another day to paste across the range.`);
+    showToast(`Dragging from ${dateKey}`);
     updateCalendarDragState();
   }
 
@@ -297,7 +299,7 @@
 
   function applyPasteTarget(sourceDate, targetDate) {
     if (isSameDate(sourceDate, targetDate)) {
-      setMessage("Drop on another day to paste slots.");
+      showToast("Drop on another day");
       return;
     }
     state.schedules[targetDate] = {
@@ -307,7 +309,7 @@
       slots: cloneSlotsForPaste(copiedSlots, targetDate),
     };
     persist();
-    setMessage(`Pasted ${sourceDate} slots to ${targetDate}.`);
+    showToast(`Pasted to ${targetDate}`);
     renderAll();
   }
 
@@ -362,7 +364,7 @@
 
   function renderModal() {
     const schedule = getSchedule(modalDate);
-    dom.modalDateLabel.textContent = `${modalDate} | click to add, click again to remove`;
+    dom.modalDateLabel.textContent = `${modalDate} · tap again to remove`;
     dom.timeGrid.innerHTML = "";
 
     TIME_OPTIONS.forEach((time) => {
@@ -427,16 +429,16 @@
     if (!modalDate) return;
     const schedule = getSchedule(modalDate);
     copiedSlots = cloneSlotsForPaste(schedule.slots);
-    setModalMessage(copiedSlots.length ? "Day copied." : "This day has no slots to copy.");
+    showToast(copiedSlots.length ? "Day copied" : "No slots to copy");
   }
 
   function pasteDaySlots() {
     if (!modalDate) return;
-    if (!copiedSlots.length) return setModalMessage("Nothing copied yet.");
+    if (!copiedSlots.length) return showToast("Nothing copied yet");
     const nextSlots = cloneSlotsForPaste(copiedSlots, modalDate).sort(compareSlots);
     state.schedules[modalDate] = { date: modalDate, enabled: true, note: "", slots: nextSlots };
     persist();
-    setModalMessage("Slots pasted.");
+    showToast("Slots pasted");
     renderAll();
   }
 
@@ -445,7 +447,7 @@
     state.schedules[modalDate] = { date: modalDate, enabled: false, note: "", slots: [] };
     clearPendingTime(false);
     persist();
-    setModalMessage("Day cleared.");
+    showToast("Day cleared");
     renderAll();
   }
 
@@ -512,11 +514,11 @@
   async function copyExportText() {
     try {
       await navigator.clipboard.writeText(dom.exportTextArea.value);
-      setExportMessage("Text copied.");
+      showToast("Text copied");
     } catch (error) {
       dom.exportTextArea.focus();
       dom.exportTextArea.select();
-      setExportMessage("Copy failed. Select the text manually.");
+      showToast("Copy failed");
     }
   }
 
@@ -625,7 +627,7 @@
 
     lines.push("END:VCALENDAR");
     downloadBlob(new Blob([lines.join("\r\n")], { type: "text/calendar;charset=utf-8" }), `appointments-${state.month}.ics`);
-    setExportMessage("ICS downloaded.");
+    showToast("ICS downloaded");
   }
 
   function buildTimeOptions(start, end, stepMinutes) {
@@ -733,10 +735,24 @@
   }
 
   function setModalMessage(message) {
-    dom.modalMessage.textContent = message;
+    dom.modalMessage.textContent = "";
+    if (message) showToast(message);
   }
 
   function setExportMessage(message) {
-    dom.exportMessage.textContent = message;
+    dom.exportMessage.textContent = "";
+    if (message) showToast(message);
+  }
+
+  function showToast(message) {
+    if (!dom.toast || !message) return;
+    window.clearTimeout(toastTimer);
+    dom.toast.textContent = message;
+    dom.toast.classList.remove("hidden");
+    requestAnimationFrame(() => dom.toast.classList.add("is-visible"));
+    toastTimer = window.setTimeout(() => {
+      dom.toast.classList.remove("is-visible");
+      window.setTimeout(() => dom.toast.classList.add("hidden"), 180);
+    }, 1600);
   }
 })();
