@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Timetabo | Appointment Schedule</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero hero-compact">
+        <div class="hero-copy-block">
+          <h1>Timetabo</h1>
+          <p class="hero-kicker">Appointment Schedule</p>
+        </div>
+        <div class="hero-actions">
+          <button id="themeToggle" type="button" class="theme-toggle icon-button" aria-label="Switch color mode">
+            <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="4.5"></circle>
+              <path d="M12 2.75v2.5M12 18.75v2.5M21.25 12h-2.5M5.25 12h-2.5M18.54 5.46l-1.77 1.77M7.23 16.77l-1.77 1.77M18.54 18.54l-1.77-1.77M7.23 7.23L5.46 5.46"></path>
+            </svg>
+            <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20.2 14.2A8.7 8.7 0 0 1 9.8 3.8a9.25 9.25 0 1 0 10.4 10.4Z"></path>
+            </svg>
+          </button>
+          <button id="openExportModal" type="button">Export</button>
+          <button id="resetAll" type="button" class="danger">Reset</button>
+        </div>
+      </header>
+
+      <main>
+        <section class="panel panel-calendar">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title-row">
+                <h2>Calendar</h2>
+                <p id="editorMessage" class="info-note">Click any day to edit slots.</p>
+              </div>
+            </div>
+            <div class="month-nav">
+              <button id="prevMonth" type="button" aria-label="Previous month">Previous</button>
+              <strong id="monthLabel" aria-live="polite"></strong>
+              <button id="nextMonth" type="button" aria-label="Next month">Next</button>
+            </div>
+          </div>
+          <div id="calendar" class="calendar" aria-label="Monthly calendar"></div>
+        </section>
+      </main>
+    </div>
+
+    <div id="slotModal" class="modal hidden" aria-hidden="true">
+      <div id="modalBackdrop" class="modal-backdrop"></div>
+      <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal-header">
+          <div>
+            <h2 id="modalTitle">Day Slots</h2>
+            <p id="modalDateLabel" class="muted">Click one time to mark it available.</p>
+            <div class="modal-inline-tools" aria-label="Day actions">
+              <button id="modalCopyDay" class="tool-button tool-button-inline" type="button" aria-label="Copy day">
+                <span class="tool-icon">C</span>
+                <span class="tool-label">Copy</span>
+              </button>
+              <button id="modalPasteDay" class="tool-button tool-button-inline" type="button" aria-label="Paste day">
+                <span class="tool-icon">P</span>
+                <span class="tool-label">Paste</span>
+              </button>
+              <button id="modalClearDay" class="tool-button tool-button-inline tool-button-danger" type="button" aria-label="Clear day">
+                <span class="tool-icon">X</span>
+                <span class="tool-label">Clear</span>
+              </button>
+            </div>
+          </div>
+          <button id="closeModal" class="icon-button" type="button" aria-label="Close popup">
+            <span class="icon-glyph">+</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p id="modalMessage" class="message" aria-live="polite"></p>
+
+          <div id="timeGrid" class="time-grid"></div>
+        </div>
+      </section>
+    </div>
+
+    <div id="exportModal" class="modal hidden" aria-hidden="true">
+      <div id="exportBackdrop" class="modal-backdrop"></div>
+      <section class="modal-card modal-card-narrow" role="dialog" aria-modal="true" aria-labelledby="exportTitle">
+        <div class="modal-header">
+          <div>
+            <h2 id="exportTitle">Export</h2>
+          </div>
+          <button id="closeExportModal" class="icon-button" type="button" aria-label="Close export popup">
+            <span class="icon-glyph">+</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="export-tabs">
+            <button id="showTextExport" class="tab-button is-active" type="button">Text</button>
+            <button id="showIcsExport" class="tab-button" type="button">ICS</button>
+          </div>
+
+          <div id="textExportPanel" class="export-panel">
+            <section class="export-card">
+              <div class="export-section-head">
+                <div>
+                  <h3>Text Export</h3>
+                </div>
+              </div>
+
+              <div class="export-settings-grid">
+                <label class="field export-field">
+                  <span>Layout</span>
+                  <select id="exportFormatSelect">
+                    <option value="grouped" selected>Grouped</option>
+                    <option value="compact">Compact</option>
+                    <option value="social">Social</option>
+                    <option value="plain">Plain</option>
+                  </select>
+                </label>
+
+                <label class="field export-field">
+                  <span>Date Format</span>
+                  <select id="dateFormatSelect">
+                    <option value="yyyy-mm-dd" selected>YYYY-MM-DD</option>
+                    <option value="yyyy/mm/dd">YYYY/MM/DD</option>
+                    <option value="mm/dd">MM/DD</option>
+                    <option value="m/d">M/D</option>
+                  </select>
+                </label>
+
+                <label class="field export-field">
+                  <span>Divider</span>
+                  <input id="dividerInput" type="text" value=", " maxlength="12" />
+                </label>
+              </div>
+
+              <div class="export-textarea-wrap">
+                <button id="copyExportText" class="copy-icon-button" type="button" aria-label="Copy text">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="9" y="9" width="10" height="10" rx="2"></rect>
+                    <path d="M15 9V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path>
+                  </svg>
+                </button>
+                <textarea id="exportTextArea" class="export-textarea" readonly></textarea>
+              </div>
+            </section>
+          </div>
+
+          <div id="icsExportPanel" class="export-panel hidden">
+            <section class="export-card">
+              <div class="export-section-head">
+                <div>
+                  <h3>ICS Export</h3>
+                </div>
+              </div>
+
+              <div class="export-settings-grid export-settings-grid-compact">
+                <label class="field export-field">
+                  <span>Duration</span>
+                  <select id="icsDurationSelect">
+                    <option value="1">1 hour</option>
+                    <option value="2">2 hours</option>
+                    <option value="3">3 hours</option>
+                    <option value="4" selected>4 hours</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="modal-actions export-actions">
+                <button id="downloadIcs" type="button">Download ICS</button>
+              </div>
+            </section>
+          </div>
+
+          <p id="exportMessage" class="message" aria-live="polite"></p>
+        </div>
+      </section>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
