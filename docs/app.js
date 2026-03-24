@@ -19,6 +19,10 @@
   let theme = loadTheme();
   let dragSourceDate = "";
   let dragTargetDate = "";
+  let dragDeleteTargetActive = false;
+  let dragDroppedOnCalendar = false;
+  let lastDragClientX = -1;
+  let lastDragClientY = -1;
   let toastTimer = 0;
   let monthTransitionTimer = 0;
   let suppressCalendarEnterAnimation = false;
@@ -60,6 +64,7 @@
     dom.dateFormatSelect = document.getElementById("dateFormatSelect");
     dom.dividerInput = document.getElementById("dividerInput");
     dom.toast = document.getElementById("toast");
+    dom.calendarDeleteDrop = document.getElementById("calendarDeleteDrop");
   }
 
   function wireEvents() {
@@ -98,6 +103,11 @@
       exportDivider = dom.dividerInput.value || " | ";
       updateTextExport();
     });
+    dom.calendarDeleteDrop.addEventListener("dragenter", handleDeleteDropEnter);
+    dom.calendarDeleteDrop.addEventListener("dragover", handleDeleteDropOver);
+    dom.calendarDeleteDrop.addEventListener("dragleave", handleDeleteDropLeave);
+    dom.calendarDeleteDrop.addEventListener("drop", handleDeleteDrop);
+    document.addEventListener("dragover", handleDocumentDragOver);
   }
 
   function loadState() {
@@ -262,7 +272,7 @@
       button.addEventListener("dragenter", () => handleCalendarDragEnter(key));
       button.addEventListener("dragover", (event) => handleCalendarDragOver(event, key));
       button.addEventListener("drop", (event) => handleCalendarDrop(event, key));
-      button.addEventListener("dragend", clearCalendarDrag);
+      button.addEventListener("dragend", handleCalendarDragEnd);
       dom.calendar.appendChild(button);
     }
 
@@ -278,6 +288,9 @@
     }
     dragSourceDate = dateKey;
     dragTargetDate = dateKey;
+    dragDroppedOnCalendar = false;
+    lastDragClientX = -1;
+    lastDragClientY = -1;
     copiedSlots = cloneSlotsForPaste(schedule.slots);
     document.body.classList.add("is-dragging-calendar");
     if (event.dataTransfer) {
@@ -290,6 +303,7 @@
 
   function handleCalendarDragEnter(dateKey) {
     if (!dragSourceDate || isSameDate(dragSourceDate, dateKey)) return;
+    dragDeleteTargetActive = false;
     dragTargetDate = dateKey;
     updateCalendarDragState();
   }
@@ -306,16 +320,90 @@
   function handleCalendarDrop(event, dateKey) {
     if (!dragSourceDate || !copiedSlots.length) return;
     event.preventDefault();
+    dragDroppedOnCalendar = true;
     applyPasteTarget(dragSourceDate, dateKey);
     clearCalendarDrag();
   }
 
+  function handleCalendarDragEnd() {
+    if (dragSourceDate && isLastDragPointInsideDeleteButton() && !dragDroppedOnCalendar) {
+      clearDaySlots(dragSourceDate);
+      showToast(`Cleared ${dragSourceDate}`);
+      suppressCalendarEnterAnimation = true;
+      renderAll();
+    }
+    clearCalendarDrag();
+  }
+
   function clearCalendarDrag() {
-    if (!dragSourceDate && !dragTargetDate) return;
+    if (!dragSourceDate && !dragTargetDate && !dragDeleteTargetActive && !dragDroppedOnCalendar) return;
     dragSourceDate = "";
     dragTargetDate = "";
+    dragDeleteTargetActive = false;
+    dragDroppedOnCalendar = false;
+    lastDragClientX = -1;
+    lastDragClientY = -1;
     document.body.classList.remove("is-dragging-calendar");
     updateCalendarDragState();
+  }
+
+  function handleDeleteDropEnter(event) {
+    if (!dragSourceDate) return;
+    event.preventDefault();
+    dragTargetDate = "";
+    dragDeleteTargetActive = true;
+    updateCalendarDragState();
+  }
+
+  function handleDeleteDropOver(event) {
+    if (!dragSourceDate) return;
+    event.preventDefault();
+    dragTargetDate = "";
+    if (!dragDeleteTargetActive) {
+      dragDeleteTargetActive = true;
+      updateCalendarDragState();
+    }
+    if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+  }
+
+  function handleDeleteDropLeave(event) {
+    if (!dragSourceDate) return;
+    if (event.relatedTarget && dom.calendarDeleteDrop.contains(event.relatedTarget)) return;
+    dragDeleteTargetActive = false;
+    updateCalendarDragState();
+  }
+
+  function handleDeleteDrop(event) {
+    if (!dragSourceDate) return;
+    event.preventDefault();
+    clearDaySlots(dragSourceDate);
+    showToast(`Cleared ${dragSourceDate}`);
+    suppressCalendarEnterAnimation = true;
+    renderAll();
+    clearCalendarDrag();
+  }
+
+  function handleDocumentDragOver(event) {
+    if (!dragSourceDate || !dom.calendarDeleteDrop) return;
+    lastDragClientX = event.clientX;
+    lastDragClientY = event.clientY;
+    const isOverDeleteButton = isPointInsideDeleteButton(event.clientX, event.clientY);
+    if (dragDeleteTargetActive !== isOverDeleteButton) {
+      dragDeleteTargetActive = isOverDeleteButton;
+      if (isOverDeleteButton) dragTargetDate = "";
+      updateCalendarDragState();
+    }
+  }
+
+  function isLastDragPointInsideDeleteButton() {
+    if (lastDragClientX < 0 || lastDragClientY < 0) return false;
+    return isPointInsideDeleteButton(lastDragClientX, lastDragClientY);
+  }
+
+  function isPointInsideDeleteButton(clientX, clientY) {
+    if (!dom.calendarDeleteDrop) return false;
+    const rect = dom.calendarDeleteDrop.getBoundingClientRect();
+    return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
   }
 
   function applyPasteTarget(sourceDate, targetDate) {
@@ -357,6 +445,11 @@
       button.classList.toggle("is-drag-target", Boolean(dragTargetDate) && dateKey === dragTargetDate && !isSameDate(dragSourceDate, dragTargetDate));
       button.classList.toggle("is-drag-range", isDateInDragRange(dateKey));
     });
+    if (dom.calendarDeleteDrop) {
+      dom.calendarDeleteDrop.classList.toggle("is-active", Boolean(dragSourceDate));
+      dom.calendarDeleteDrop.classList.toggle("is-drag-target", dragDeleteTargetActive);
+      dom.calendarDeleteDrop.setAttribute("aria-hidden", dragSourceDate ? "false" : "true");
+    }
   }
 
   function isSameDate(left, right) {
@@ -465,11 +558,15 @@
 
   function clearModalDay() {
     if (!modalDate) return;
-    state.schedules[modalDate] = { date: modalDate, enabled: false, note: "", slots: [] };
+    clearDaySlots(modalDate);
     clearPendingTime(false);
-    persist();
     showToast("Day cleared");
     renderAll();
+  }
+
+  function clearDaySlots(dateKey) {
+    state.schedules[dateKey] = { date: dateKey, enabled: false, note: "", slots: [] };
+    persist();
   }
 
   function deleteSlot(slotId) {

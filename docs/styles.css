@@ -533,6 +533,60 @@ body.is-dragging-calendar .day-cell {
     0 0 0 3px color-mix(in srgb, var(--saved) 12%, transparent);
 }
 
+.calendar-delete-drop {
+  position: fixed;
+  left: 50%;
+  bottom: 0.45rem;
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-width: 136px;
+  height: 44px;
+  padding: 0 0.95rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border-strong) 78%, transparent);
+  background: color-mix(in srgb, var(--surface-strong) 96%, transparent);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--text) 10%, transparent);
+  color: var(--muted);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(8px);
+  transition:
+    opacity 140ms ease,
+    transform 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.calendar-delete-drop.is-active {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+.calendar-delete-drop.is-drag-target {
+  border-color: color-mix(in srgb, var(--danger) 56%, transparent);
+  background: color-mix(in srgb, var(--danger) 12%, var(--surface-strong));
+  color: color-mix(in srgb, var(--danger) 88%, var(--text));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--danger) 18%, transparent),
+    0 18px 34px color-mix(in srgb, var(--danger) 15%, transparent);
+}
+
+.calendar-delete-drop__icon {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .day-number {
   display: block;
   font-weight: 700;
@@ -1415,6 +1469,13 @@ body.is-dragging-calendar .day-cell {
 
   .export-textarea {
     min-height: 160px;
+  }
+
+  .calendar-delete-drop {
+    bottom: 0.2rem;
+    min-width: 124px;
+    height: 42px;
+    padding: 0 0.9rem;
   }
 
   .copy-icon-button {
