@@ -11,10 +11,10 @@
   let modalDate = null;
   let pendingTime = null;
   let copiedSlots = [];
-  let exportFormat = "social";
+  let exportFormat = "parallel";
   let exportDurationHours = 4;
-  let exportDateFormat = "yyyy-mm-dd";
-  let exportDivider = getDefaultDivider("social");
+  let exportDateFormat = "mm/dd";
+  let exportDivider = getDefaultDivider("parallel");
   let exportTab = "text";
   let theme = loadTheme();
   let dragSourceDate = "";
@@ -85,13 +85,13 @@
       exportDurationHours = Number(dom.icsDurationSelect.value) || 4;
     });
     dom.exportFormatSelect.addEventListener("change", () => {
-      exportFormat = dom.exportFormatSelect.value || "social";
+      exportFormat = dom.exportFormatSelect.value || "parallel";
       exportDivider = getDefaultDivider(exportFormat);
       dom.dividerInput.value = exportDivider;
       updateTextExport();
     });
     dom.dateFormatSelect.addEventListener("change", () => {
-      exportDateFormat = dom.dateFormatSelect.value || "yyyy-mm-dd";
+      exportDateFormat = dom.dateFormatSelect.value || "mm/dd";
       updateTextExport();
     });
     dom.dividerInput.addEventListener("input", () => {
@@ -563,6 +563,12 @@
     const listPrefix = getListPrefix();
 
     if (format === "compact") {
+      return items
+        .map(([date, schedule]) => `${formatDateLabel(date)} ${schedule.slots.map((slot) => `${slot.start}`).join(exportDivider)}`)
+        .join("\n");
+    }
+
+    if (format === "parallel") {
       return items
         .map(([date, schedule]) => `${formatDateLabel(date)} ${schedule.slots.map((slot) => `${slot.start}`).join(exportDivider)}`)
         .join("\n");
