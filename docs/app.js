@@ -11,15 +11,17 @@
   let modalDate = null;
   let pendingTime = null;
   let copiedSlots = [];
-  let exportFormat = "grouped";
+  let exportFormat = "social";
   let exportDurationHours = 4;
   let exportDateFormat = "yyyy-mm-dd";
-  let exportDivider = getDefaultDivider("grouped");
+  let exportDivider = getDefaultDivider("social");
   let exportTab = "text";
   let theme = loadTheme();
   let dragSourceDate = "";
   let dragTargetDate = "";
   let toastTimer = 0;
+  let monthTransitionTimer = 0;
+  let suppressCalendarEnterAnimation = false;
 
   document.addEventListener("DOMContentLoaded", init);
 
@@ -29,12 +31,12 @@
     selectedDate = findInitialSelectedDate();
     wireEvents();
     renderAll();
+    requestAnimationFrame(() => document.body.classList.add("is-ready"));
   }
 
   function bindDom() {
     dom.calendar = document.getElementById("calendar");
     dom.monthLabel = document.getElementById("monthLabel");
-    dom.editorMessage = document.getElementById("editorMessage");
     dom.themeToggle = document.getElementById("themeToggle");
 
     dom.slotModal = document.getElementById("slotModal");
@@ -83,7 +85,7 @@
       exportDurationHours = Number(dom.icsDurationSelect.value) || 4;
     });
     dom.exportFormatSelect.addEventListener("change", () => {
-      exportFormat = dom.exportFormatSelect.value || "grouped";
+      exportFormat = dom.exportFormatSelect.value || "social";
       exportDivider = getDefaultDivider(exportFormat);
       dom.dividerInput.value = exportDivider;
       updateTextExport();
@@ -181,6 +183,15 @@
   }
 
   function changeMonth(delta) {
+    if (dom.calendar) {
+      dom.calendar.classList.remove("is-month-transitioning");
+      void dom.calendar.offsetWidth;
+      dom.calendar.classList.add("is-month-transitioning");
+      window.clearTimeout(monthTransitionTimer);
+      monthTransitionTimer = window.setTimeout(() => {
+        dom.calendar.classList.remove("is-month-transitioning");
+      }, 260);
+    }
     const [year, month] = state.month.split("-").map(Number);
     const next = new Date(year, month - 1 + delta, 1);
     state.month = toMonthKey(next);
@@ -228,17 +239,24 @@
       const button = document.createElement("button");
       button.type = "button";
       button.className = "day-cell";
+      button.style.setProperty("--enter-index", String(day - 1));
+      if (suppressCalendarEnterAnimation) button.classList.add("no-enter");
       button.dataset.date = key;
       button.setAttribute("aria-label", `${key} ${schedule.slots.length} slots`);
       if (selectedDate === key) button.classList.add("is-active");
       if (schedule.enabled && schedule.slots.length > 0) button.classList.add("has-slots");
       if (schedule.enabled && schedule.slots.length > 0) button.draggable = true;
+      if (schedule.slots.length > 0) {
+        const slotStrength = Math.min(schedule.slots.length, 4);
+        button.style.setProperty("--slot-strength", String(slotStrength));
+      }
+      const previewSlots = schedule.slots.slice(0, 3);
+      const moreCount = schedule.slots.length - previewSlots.length;
       button.innerHTML =
         `<span class="day-number">${day}</span>` +
-        `<div class="day-slots">${schedule.slots
-          .slice(0, 3)
+        `<div class="day-slots">${previewSlots
           .map((slot) => `${slot.start}`)
-          .join("<br>")}</div>`;
+          .join("<br>")}${moreCount > 0 ? `<span class="day-slots-more">+${moreCount}</span>` : ""}</div>`;
       button.addEventListener("click", () => openModal(key));
       button.addEventListener("dragstart", (event) => handleCalendarDragStart(event, key));
       button.addEventListener("dragenter", () => handleCalendarDragEnter(key));
@@ -249,6 +267,7 @@
     }
 
     updateCalendarDragState();
+    suppressCalendarEnterAnimation = false;
   }
 
   function handleCalendarDragStart(event, dateKey) {
@@ -260,6 +279,7 @@
     dragSourceDate = dateKey;
     dragTargetDate = dateKey;
     copiedSlots = cloneSlotsForPaste(schedule.slots);
+    document.body.classList.add("is-dragging-calendar");
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = "copy";
       event.dataTransfer.setData("text/plain", dateKey);
@@ -294,6 +314,7 @@
     if (!dragSourceDate && !dragTargetDate) return;
     dragSourceDate = "";
     dragTargetDate = "";
+    document.body.classList.remove("is-dragging-calendar");
     updateCalendarDragState();
   }
 
@@ -310,6 +331,7 @@
     };
     persist();
     showToast(`Pasted to ${targetDate}`);
+    suppressCalendarEnterAnimation = true;
     renderAll();
   }
 
@@ -348,7 +370,6 @@
     dom.slotModal.classList.remove("hidden");
     dom.slotModal.setAttribute("aria-hidden", "false");
     document.body.classList.add("modal-open");
-    setMessage("");
     setModalMessage("");
     renderModal();
   }
@@ -475,7 +496,7 @@
   }
 
   function openExportModal() {
-    if (!selectedSchedules().length) return setMessage("There are no slots to export.");
+    if (!selectedSchedules().length) return showToast("There are no slots to export.");
     dom.exportModal.classList.remove("hidden");
     dom.exportModal.setAttribute("aria-hidden", "false");
     document.body.classList.add("modal-open");
@@ -501,6 +522,8 @@
     dom.dividerInput.value = exportDivider;
     dom.textExportPanel.classList.toggle("hidden", exportTab !== "text");
     dom.icsExportPanel.classList.toggle("hidden", exportTab !== "ics");
+    dom.textExportPanel.classList.toggle("is-active-panel", exportTab === "text");
+    dom.icsExportPanel.classList.toggle("is-active-panel", exportTab === "ics");
     dom.showTextExport.classList.toggle("is-active", exportTab === "text");
     dom.showIcsExport.classList.toggle("is-active", exportTab === "ics");
     if (exportTab === "text") updateTextExport();
@@ -728,10 +751,6 @@
 
   function escapeIcs(value) {
     return String(value).replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;");
-  }
-
-  function setMessage(message) {
-    dom.editorMessage.textContent = message;
   }
 
   function setModalMessage(message) {

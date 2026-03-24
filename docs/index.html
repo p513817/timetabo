@@ -23,24 +23,39 @@
               <path d="M20.2 14.2A8.7 8.7 0 0 1 9.8 3.8a9.25 9.25 0 1 0 10.4 10.4Z"></path>
             </svg>
           </button>
-          <button id="openExportModal" type="button">Export</button>
-          <button id="resetAll" type="button" class="danger">Reset</button>
+          <button id="openExportModal" type="button" class="icon-button" aria-label="Open export">
+            <svg class="header-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 4v10"></path>
+              <path d="m8.5 10.5 3.5 3.5 3.5-3.5"></path>
+              <path d="M5 18.5h14"></path>
+            </svg>
+          </button>
         </div>
       </header>
 
       <main>
         <section class="panel panel-calendar">
           <div class="panel-header">
-            <div>
-              <div class="panel-title-row">
-                <h2>Calendar</h2>
-                <p id="editorMessage" class="info-note">Click any day to edit slots.</p>
-              </div>
-            </div>
             <div class="month-nav">
-              <button id="prevMonth" type="button" aria-label="Previous month">Previous</button>
+              <button id="prevMonth" type="button" aria-label="Previous month">
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m14.5 6.5-5.5 5.5 5.5 5.5"></path>
+                </svg>
+              </button>
               <strong id="monthLabel" aria-live="polite"></strong>
-              <button id="nextMonth" type="button" aria-label="Next month">Next</button>
+              <button id="nextMonth" type="button" aria-label="Next month">
+                <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m9.5 6.5 5.5 5.5-5.5 5.5"></path>
+                </svg>
+              </button>
+              <button id="resetAll" type="button" class="icon-button danger" aria-label="Reset all schedules">
+                <svg class="header-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M20 6v5h-5"></path>
+                  <path d="M4 18v-5h5"></path>
+                  <path d="M6.8 9A7 7 0 0 1 18 7l2 4"></path>
+                  <path d="M17.2 15A7 7 0 0 1 6 17l-2-4"></path>
+                </svg>
+              </button>
             </div>
           </div>
           <div id="calendar" class="calendar" aria-label="Monthly calendar"></div>
@@ -110,19 +125,13 @@
 
           <div id="textExportPanel" class="export-panel">
             <section class="export-card">
-              <div class="export-section-head">
-                <div>
-                  <h3>Text Export</h3>
-                </div>
-              </div>
-
               <div class="export-settings-grid">
                 <label class="field export-field">
                   <span>Layout</span>
                   <select id="exportFormatSelect">
-                    <option value="grouped" selected>Grouped</option>
+                    <option value="social" selected>Social</option>
+                    <option value="grouped">Grouped</option>
                     <option value="compact">Compact</option>
-                    <option value="social">Social</option>
                     <option value="plain">Plain</option>
                   </select>
                 </label>
@@ -157,12 +166,6 @@
 
           <div id="icsExportPanel" class="export-panel hidden">
             <section class="export-card">
-              <div class="export-section-head">
-                <div>
-                  <h3>ICS Export</h3>
-                </div>
-              </div>
-
               <div class="export-settings-grid export-settings-grid-compact">
                 <label class="field export-field">
                   <span>Duration</span>
